@@ -1,0 +1,25 @@
+ # Build Container Image
+FROM alpine as cmatrixbuilder
+
+WORKDIR /root/cmatrix
+
+RUN apk update --no-cache && \
+    apk add git autoconf automake alpine-sdk ncurses-dev ncurses-static && \
+    git clone https://github.com/eduflornet/cmatrix.git && \
+    cd cmatrix && \
+    autoreconf -i && \
+    ./configure LDFLAGS="-static" && \
+    mkdir -p /usr/lib/kbd/consolefonts /usr/share/consoletrans && \
+    make
+
+FROM alpine
+LABEL org.opencontainers.image.authors="Eduardo Flores" \
+      org.opencontainers.image.description="Container image for https://github.com/abishekvashok/cmatrix"
+
+      RUN apk update --no-cache && apk add ncurses-terminfo-base && \
+      adduser -g "Edu Flores" -s /usr/sbin/nologin -D -H eduflornet
+COPY --from=cmatrixbuilder /root/cmatrix/cmatrix/cmatrix /cmatrix/cmatrix
+USER eduflornet
+ENTRYPOINT [ "./cmatrix/cmatrix" ]
+CMD ["-k -b -r"]
+# CMD ["-ab -u2 -C magenta"]
